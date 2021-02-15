@@ -4,7 +4,7 @@ const crypto = require('crypto')
 const PrivateKey = require('../pkcs1/private-key')
 const PublicKey = require('../pkcs1/public-key')
 
-describe('rsa', () => {
+describe('pkcs1', () => {
   let pem, privateKey, publicKey
   beforeAll(async () => {
     pem = await new Promise((resolve, reject) => {
