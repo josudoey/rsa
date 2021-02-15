@@ -1,0 +1,16 @@
+*~
+*.swp
+*.swo
+node_modules
+package-lock.json
+etc
+docs
+build
+.DS_Store
+
+# Yarn
+yarn-error.log
+yarn.lock
+/.yarn/*
+!/.yarn/plugins/
+!/.yarn/releases/
