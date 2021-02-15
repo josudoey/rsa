@@ -5,7 +5,7 @@ const PrivateKey = require('../pkcs1/private-key')
 const PublicKey = require('../pkcs1/public-key')
 
 describe('rsa', () => {
-  let pem
+  let pem, privateKey, publicKey
   beforeAll(async () => {
     pem = await new Promise((resolve, reject) => {
       crypto.generateKeyPair('rsa', {
@@ -28,6 +28,9 @@ describe('rsa', () => {
         })
       })
     })
+
+    privateKey = PrivateKey.fromPEM(pem.privateKey)
+    publicKey = PublicKey.fromPEM(pem.publicKey)
   })
 
   describe('PrivateKey', () => {
@@ -37,14 +40,12 @@ describe('rsa', () => {
         key: pem.publicKey,
         padding: crypto.constants.RSA_PKCS1_PADDING
       }, message)
-      const privateKey = PrivateKey.fromPEM(pem.privateKey)
       const decrypted = privateKey.decrypt(cipher)
       assert.strictEqual(decrypted.toString(), 'hello world')
     })
 
     it('sign', () => {
       const message = Buffer.from('hello world')
-      const privateKey = PrivateKey.fromPEM(pem.privateKey)
       const signature = privateKey.sign(message)
       assert.strictEqual(signature.length, 256)
       assert.strictEqual(crypto.verify(null, message, pem.publicKey, signature), true)
@@ -55,7 +56,6 @@ describe('rsa', () => {
 
     it('encrypt', () => {
       const message = crypto.randomBytes(256 - 11)
-      const privateKey = PrivateKey.fromPEM(pem.privateKey)
       const cipher = privateKey.encrypt(message)
       const decrypted = crypto.publicDecrypt({
         key: pem.publicKey,
@@ -69,7 +69,6 @@ describe('rsa', () => {
   describe('PublicKey', () => {
     it('encrypt', () => {
       const message = Buffer.from('hello world')
-      const publicKey = PublicKey.fromPEM(pem.publicKey)
       const cipher = publicKey.encrypt(message)
       assert.strictEqual(cipher.length, 256)
 
@@ -83,7 +82,6 @@ describe('rsa', () => {
     it('verify', () => {
       const message = Buffer.from('hello world')
       const signature = crypto.sign(null, message, pem.privateKey)
-      const publicKey = PublicKey.fromPEM(pem.publicKey)
       assert.strictEqual(publicKey.verify(message, signature), true)
 
       const signature2 = crypto.createSign('RSA-SHA256').update(message).sign(pem.privateKey)
@@ -96,8 +94,24 @@ describe('rsa', () => {
         key: pem.privateKey,
         padding: crypto.constants.RSA_PKCS1_PADDING
       }, message)
-      const publicKey = PublicKey.fromPEM(pem.publicKey)
       const decrypted = publicKey.decrypt(cipher)
+      assert.strictEqual(decrypted.compare(message), 0)
+    })
+  })
+
+  describe('Message Size Limit', () => {
+    test.each([1, 10, 50, 100, 1024])('sign&verify message size: %i byte', (size) => {
+      const message = crypto.randomBytes(size)
+      const signature = privateKey.sign(message)
+      assert.strictEqual(signature.length, 256)
+      assert.strictEqual(publicKey.verify(message, signature), true)
+    })
+
+    test.each([1, 10, 50, 100, 245])('publicEncrypt&privateDecrypt message size: %i byte', (size) => {
+      const message = crypto.randomBytes(size)
+      const cipher = publicKey.encrypt(message)
+      assert.strictEqual(cipher.length, 256)
+      const decrypted = privateKey.decrypt(cipher)
       assert.strictEqual(decrypted.compare(message), 0)
     })
   })
