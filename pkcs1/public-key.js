@@ -180,15 +180,15 @@ class PublicKey {
     if (EM[0] !== 0x00 || EM[1] !== 0x01) {
       throw new Error('decryption error')
     }
-    const PSEndIndex = EM.indexOf(0x00, 2)
-    if (PSEndIndex < 0) {
+    const zeroIndex = EM.indexOf(0x00, 2)
+    if (zeroIndex < 0) {
       throw new Error('decryption error')
     }
-    const PSLength = PSEndIndex - 2
+    const PSLength = zeroIndex - 2
     if (PSLength < 8) {
       throw new Error('decryption error')
     }
-    const M = EM.slice(PSEndIndex + 1)
+    const M = EM.slice(zeroIndex + 1)
     return M
   }
 }
