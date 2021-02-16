@@ -3,6 +3,7 @@ const BN = require('bn.js')
 const Ber = require('asn1').Ber
 const PublicKey = require('./public-key')
 const DigestInfo = require('./digest-info')
+const mgf1 = require('./mgf1')
 
 // ref https://tools.ietf.org/html/rfc3447#section-3.2
 class PrivateKey {
@@ -96,6 +97,10 @@ class PrivateKey {
   }
 
   decrypt (cipher) {
+    return this.oaepDecrypt(cipher)
+  }
+
+  v15Decrypt (cipher) {
     // RSAES-PKCS1-V1_5-DECRYPT
     // ref https://tools.ietf.org/html/rfc8017#section-7.2.2
 
@@ -123,6 +128,53 @@ class PrivateKey {
       throw new Error('decryption error')
     }
     const M = EM.slice(PSEndIndex + 1)
+    return M
+  }
+
+  oaepDecrypt (cipher) {
+    // RSAES-OAEP-DECRYPT
+    // ref https://tools.ietf.org/html/rfc3447#section-7.1.2
+
+    const { n, d } = this
+    const L = Buffer.alloc(0)
+
+    const hLen = 20
+    const C = Buffer.isBuffer(cipher) ? cipher : Buffer.from(cipher)
+    if (C.length !== this.k || this.k < 2 * hLen + 2) {
+      throw new Error('decryption error')
+    }
+
+    // RSADP
+    // https://tools.ietf.org/html/rfc8017#section-5.1.2
+    // m = c^d mod n
+    const m = new BN(C).toRed(n).redPow(d)
+    const EM = m.toBuffer('be', this.k)
+
+    // EME-OAEP
+    const seed = EM.slice(1, hLen + 1)
+    const DB = EM.slice(1 + hLen)
+
+    const seedMask = mgf1.sha1(DB, hLen)
+    for (let i = 0; i < seed.length; i++) {
+      seed[i] ^= seedMask[i]
+    }
+
+    const dbMask = mgf1.sha1(seed, this.k - hLen - 1)
+    for (let i = 0; i < DB.length; i++) {
+      DB[i] ^= dbMask[i]
+    }
+
+    const lHash = crypto.createHash('sha1').update(L).digest()
+
+    if (DB.slice(0, hLen).compare(lHash) !== 0) {
+      throw new Error('decryption error')
+    }
+
+    const oneIndex = DB.indexOf(0x01, hLen)
+    if (oneIndex < 0) {
+      throw new Error('decryption error')
+    }
+    const M = DB.slice(oneIndex + 1)
     return M
   }
 

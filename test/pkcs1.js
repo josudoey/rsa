@@ -44,6 +44,29 @@ describe('pkcs1', () => {
       assert.strictEqual(cipher.length, 256)
 
       const decrypted = crypto.privateDecrypt({
+        key: pem.privateKey
+      }, cipher)
+      assert.strictEqual(decrypted.toString(), 'hello world')
+    })
+
+    it('oaepEncrypt', () => {
+      const message = Buffer.from('hello world')
+      const cipher = publicKey.oaepEncrypt(message)
+      assert.strictEqual(cipher.length, 256)
+
+      const decrypted = crypto.privateDecrypt({
+        key: pem.privateKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
+      }, cipher)
+      assert.strictEqual(decrypted.toString(), 'hello world')
+    })
+
+    it('v15Encrypt', () => {
+      const message = Buffer.from('hello world')
+      const cipher = publicKey.v15Encrypt(message)
+      assert.strictEqual(cipher.length, 256)
+
+      const decrypted = crypto.privateDecrypt({
         key: pem.privateKey,
         padding: crypto.constants.RSA_PKCS1_PADDING
       }, cipher)
@@ -82,10 +105,29 @@ describe('pkcs1', () => {
     it('decrypt', () => {
       const message = Buffer.from('hello world')
       const cipher = crypto.publicEncrypt({
+        key: pem.publicKey
+      }, message)
+      const decrypted = privateKey.decrypt(cipher)
+      assert.strictEqual(decrypted.toString(), 'hello world')
+    })
+
+    it('oaepDecrypt', () => {
+      const message = Buffer.from('hello world')
+      const cipher = crypto.publicEncrypt({
+        key: pem.publicKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
+      }, message)
+      const decrypted = privateKey.oaepDecrypt(cipher)
+      assert.strictEqual(decrypted.toString(), 'hello world')
+    })
+
+    it('v15Decrypt', () => {
+      const message = Buffer.from('hello world')
+      const cipher = crypto.publicEncrypt({
         key: pem.publicKey,
         padding: crypto.constants.RSA_PKCS1_PADDING
       }, message)
-      const decrypted = privateKey.decrypt(cipher)
+      const decrypted = privateKey.v15Decrypt(cipher)
       assert.strictEqual(decrypted.toString(), 'hello world')
     })
 
@@ -119,7 +161,7 @@ describe('pkcs1', () => {
       assert.strictEqual(publicKey.verify(message, signature), true)
     })
 
-    test.each([1, 10, 50, 100, 245])('publicEncrypt&privateDecrypt message size: %i byte', (size) => {
+    test.each([1, 10, 50, 100, 214])('publicEncrypt&privateDecrypt message size: %i byte', (size) => {
       const message = crypto.randomBytes(size)
       const cipher = publicKey.encrypt(message)
       assert.strictEqual(cipher.length, 256)

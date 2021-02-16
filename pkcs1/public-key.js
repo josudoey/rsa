@@ -2,6 +2,7 @@ const crypto = require('crypto')
 const BN = require('bn.js')
 const Ber = require('asn1').Ber
 const DigestInfo = require('./digest-info')
+const mgf1 = require('./mgf1')
 
 // ref https://tools.ietf.org/html/rfc3447#section-3.1
 class PublicKey {
@@ -53,6 +54,61 @@ class PublicKey {
   }
 
   encrypt (message) {
+    return this.oaepEncrypt(message)
+  }
+
+  oaepEncrypt (message) {
+    // RSAES-OAEP-ENCRYPT
+    // ref https://tools.ietf.org/html/rfc3447#section-7.1.1
+    const { n, e } = this
+    const L = Buffer.alloc(0)
+
+    const hLen = 20
+    const M = Buffer.isBuffer(message) ? message : Buffer.from(message)
+    if (M.length > this.k - 2 * hLen - 2) {
+      throw new Error('message too long')
+    }
+
+    // EME-OAEP
+    const lHash = crypto.createHash('sha1').update(L).digest()
+    const PS = Buffer.alloc(this.k - M.length - 2 * hLen - 2, 0x00)
+
+    // DB = lHash || PS || 0x01 || M
+    const DB = Buffer.concat([lHash, PS, Buffer.from([0x01]), M])
+
+    // d. Generate a random octet string seed of length hLen.
+    const seed = crypto.randomBytes(hLen)
+
+    // e. Let dbMask = MGF(seed, k - hLen - 1).
+    // MGF1
+    // ref https://tools.ietf.org/html/rfc3447#appendix-B.2.1
+    const dbMask = mgf1.sha1(seed, this.k - hLen - 1)
+
+    // f. Let maskedDB = DB \xor dbMask
+    for (let i = 0; i < DB.length; i++) {
+      DB[i] ^= dbMask[i]
+    }
+
+    // g. Let seedMask = MGF(maskedDB, hLen).
+    const seedMask = mgf1.sha1(DB, hLen)
+
+    // h. Let maskedSeed = seed \xor seedMask.
+    for (let i = 0; i < seed.length; i++) {
+      seed[i] ^= seedMask[i]
+    }
+
+    const EM = Buffer.concat([Buffer.from([0x00]), seed, DB])
+    const m = new BN(EM)
+
+    // RSAEP
+    // ref https://tools.ietf.org/html/rfc8017#section-5.1.1
+    // c = m^e mod n
+    const c = m.toRed(n).redPow(e)
+    const C = c.toBuffer('be', this.k)
+    return C
+  }
+
+  v15Encrypt (message) {
     // RSAES-PKCS1-V1_5-ENCRYPT
     // ref https://tools.ietf.org/html/rfc8017#section-7.2.1
 
@@ -64,9 +120,6 @@ class PublicKey {
 
     const PS = crypto.randomBytes(this.k - M.length - 3)
     for (let i = 0; i < PS.length; i++) {
-      if (PS[i] !== 0) {
-        continue
-      }
       while (PS[i] === 0) { // non-zero only
         PS[i] = crypto.randomBytes(1)[0]
       }
