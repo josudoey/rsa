@@ -1,6 +1,7 @@
 const crypto = require('crypto')
 const BN = require('bn.js')
 const Ber = require('asn1').Ber
+const PublicKey = require('./public-key')
 const DigestInfo = require('./digest-info')
 
 // ref https://tools.ietf.org/html/rfc3447#section-3.2
@@ -88,6 +89,10 @@ class PrivateKey {
     writer.endSequence()
     const base64text = writer.buffer.toString('base64').split(/(.{64})/g).filter((v) => (v)).join('\n')
     return `-----BEGIN RSA PRIVATE KEY-----\n${base64text}\n-----END RSA PRIVATE KEY-----\n`
+  }
+
+  getPublicKey () {
+    return new PublicKey(this.n.m.toBuffer(), this.e.toBuffer())
   }
 
   decrypt (cipher) {
