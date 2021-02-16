@@ -57,6 +57,39 @@ class PrivateKey {
     this.qInv = new BN(coefficient)
   }
 
+  toPEM () {
+    const signedness = (bn) => {
+      const signBitIndex = bn.byteLength() * 8 - 1
+      if (bn.testn(signBitIndex)) {
+        return Buffer.concat([Buffer.from([0x00]), bn.toBuffer()])
+      }
+      return bn.toBuffer()
+    }
+    const n = signedness(this.n.m)
+    const e = signedness(this.e)
+    const d = signedness(this.d)
+    const p = signedness(this.p)
+    const q = signedness(this.q)
+    const dP = signedness(this.dP)
+    const dQ = signedness(this.dQ)
+    const qInv = signedness(this.qInv)
+
+    const writer = new Ber.Writer()
+    writer.startSequence()
+    writer.writeInt(0)
+    writer.writeBuffer(n, Ber.Integer)
+    writer.writeBuffer(e, Ber.Integer)
+    writer.writeBuffer(d, Ber.Integer)
+    writer.writeBuffer(p, Ber.Integer)
+    writer.writeBuffer(q, Ber.Integer)
+    writer.writeBuffer(dP, Ber.Integer)
+    writer.writeBuffer(dQ, Ber.Integer)
+    writer.writeBuffer(qInv, Ber.Integer)
+    writer.endSequence()
+    const base64text = writer.buffer.toString('base64').split(/(.{64})/g).filter((v) => (v)).join('\n')
+    return `-----BEGIN RSA PRIVATE KEY-----\n${base64text}\n-----END RSA PRIVATE KEY-----\n`
+  }
+
   decrypt (cipher) {
     // RSAES-PKCS1-V1_5-DECRYPT
     // ref https://tools.ietf.org/html/rfc8017#section-7.2.2

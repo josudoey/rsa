@@ -32,6 +32,26 @@ class PublicKey {
     this.e = new BN(publicExponent)
   }
 
+  toPEM () {
+    const signedness = (bn) => {
+      const signBitIndex = bn.byteLength() * 8 - 1
+      if (bn.testn(signBitIndex)) {
+        return Buffer.concat([Buffer.from([0x00]), bn.toBuffer()])
+      }
+      return bn.toBuffer()
+    }
+    const n = signedness(this.n.m)
+    const e = signedness(this.e)
+
+    const writer = new Ber.Writer()
+    writer.startSequence()
+    writer.writeBuffer(n, Ber.Integer)
+    writer.writeBuffer(e, Ber.Integer)
+    writer.endSequence()
+    const base64text = writer.buffer.toString('base64').split(/(.{64})/g).filter((v) => (v)).join('\n')
+    return `-----BEGIN RSA PUBLIC KEY-----\n${base64text}\n-----END RSA PUBLIC KEY-----\n`
+  }
+
   encrypt (message) {
     // RSAES-PKCS1-V1_5-ENCRYPT
     // ref https://tools.ietf.org/html/rfc8017#section-7.2.1

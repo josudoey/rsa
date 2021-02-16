@@ -34,6 +34,10 @@ describe('pkcs1', () => {
   })
 
   describe('PrivateKey', () => {
+    it('toPEM', () => {
+      assert.strictEqual(privateKey.toPEM(), pem.privateKey)
+    })
+
     it('decrypt', () => {
       const message = Buffer.from('hello world')
       const cipher = crypto.publicEncrypt({
@@ -67,6 +71,10 @@ describe('pkcs1', () => {
   })
 
   describe('PublicKey', () => {
+    it('toPEM', () => {
+      assert.strictEqual(publicKey.toPEM(), pem.publicKey)
+    })
+
     it('encrypt', () => {
       const message = Buffer.from('hello world')
       const cipher = publicKey.encrypt(message)
