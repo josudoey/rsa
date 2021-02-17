@@ -34,15 +34,15 @@ class PublicKey {
   }
 
   toPEM () {
-    const signedness = (bn) => {
+    const unsigned = (bn) => {
       const signBitIndex = bn.byteLength() * 8 - 1
       if (bn.testn(signBitIndex)) {
         return Buffer.concat([Buffer.from([0x00]), bn.toBuffer()])
       }
       return bn.toBuffer()
     }
-    const n = signedness(this.n.m)
-    const e = signedness(this.e)
+    const n = unsigned(this.n.m)
+    const e = unsigned(this.e)
 
     const writer = new Ber.Writer()
     writer.startSequence()

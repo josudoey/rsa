@@ -60,21 +60,21 @@ class PrivateKey {
   }
 
   toPEM () {
-    const signedness = (bn) => {
+    const unsigned = (bn) => {
       const signBitIndex = bn.byteLength() * 8 - 1
       if (bn.testn(signBitIndex)) {
         return Buffer.concat([Buffer.from([0x00]), bn.toBuffer()])
       }
       return bn.toBuffer()
     }
-    const n = signedness(this.n.m)
-    const e = signedness(this.e)
-    const d = signedness(this.d)
-    const p = signedness(this.p)
-    const q = signedness(this.q)
-    const dP = signedness(this.dP)
-    const dQ = signedness(this.dQ)
-    const qInv = signedness(this.qInv)
+    const n = unsigned(this.n.m)
+    const e = unsigned(this.e)
+    const d = unsigned(this.d)
+    const p = unsigned(this.p)
+    const q = unsigned(this.q)
+    const dP = unsigned(this.dP)
+    const dQ = unsigned(this.dQ)
+    const qInv = unsigned(this.qInv)
 
     const writer = new Ber.Writer()
     writer.startSequence()
