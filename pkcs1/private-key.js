@@ -88,7 +88,7 @@ class PrivateKey {
     writer.writeBuffer(dQ, Ber.Integer)
     writer.writeBuffer(qInv, Ber.Integer)
     writer.endSequence()
-    const base64text = writer.buffer.toString('base64').split(/(.{64})/g).filter((v) => (v)).join('\n')
+    const base64text = writer.buffer.toString('base64').split(/(.{64})/g).filter(v => v).join('\n')
     return `-----BEGIN RSA PRIVATE KEY-----\n${base64text}\n-----END RSA PRIVATE KEY-----\n`
   }
 

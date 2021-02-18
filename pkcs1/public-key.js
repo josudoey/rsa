@@ -49,7 +49,7 @@ class PublicKey {
     writer.writeBuffer(n, Ber.Integer)
     writer.writeBuffer(e, Ber.Integer)
     writer.endSequence()
-    const base64text = writer.buffer.toString('base64').split(/(.{64})/g).filter((v) => (v)).join('\n')
+    const base64text = writer.buffer.toString('base64').split(/(.{64})/g).filter(v => v).join('\n')
     return `-----BEGIN RSA PUBLIC KEY-----\n${base64text}\n-----END RSA PUBLIC KEY-----\n`
   }
 
